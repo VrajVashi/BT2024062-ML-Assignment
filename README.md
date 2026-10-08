@@ -61,13 +61,12 @@ All results use `random_state=42` / `numpy.random.seed(42)` for reproducibility.
 
 ## Chosen Degrees and Models
 
-| Problem | Degree | Model | CV Alpha | CV MSE | CV R² | Holdout MSE | Holdout R² |
-|---|---|---|---|---|---|---|---|
-| var1 | **5** | Ridge | 1.0 | 0.4753 | 0.9538 | 0.4035 | 0.9593 |
-| var2 | **8** | Ridge | 0.01 | 0.2541 | 0.9942 | 0.2630 | 0.9951 |
+| Problem | Degree | Model | Best Alpha | Val MSE | Val R² |
+|---|---|---|---|---|---|
+| var1 | **5** | Ridge | 10.0 | 0.3955 | 0.9601 |
+| var2 | **10** | Ridge | 1.0 | 0.2597 | 0.9951 |
 
-**Degree selection rule:** 1-standard-error rule over 5-fold CV MSE — the smallest degree whose mean CV MSE ≤ best_mse + 1 SE (parsimony).  
-**Ridge** was chosen over OLS in both cases because it strictly improved CV MSE.
+**Degree selection:** Ridge regression with integer degree sweep and validation MSE minimization (with degree 8 achieving a very close MSE of 0.2611). Ridge was chosen for both problems due to significant variance reduction and numerical stability.
 
 ---
 

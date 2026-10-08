@@ -13,3 +13,5 @@ env/
 *.ipynb
 .DS_Store
 Thumbs.db
+BT2024021_Report.pdf
+results/equations/

@@ -1,2 +1,2 @@
 var1_degree,var1_model,var2_degree,var2_model
-5,Ridge(alpha=1.0),8,Ridge(alpha=0.01)
+5,Ridge(alpha=10.0),10,Ridge(alpha=1.0)

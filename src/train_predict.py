@@ -17,11 +17,11 @@ set_global_seed()
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "results"
 
-VAR1_DEGREE = 6
+VAR1_DEGREE = 5
 VAR1_MODEL = "Ridge"
-VAR1_ALPHA = 1.0
+VAR1_ALPHA = 10.0
 
-VAR2_DEGREE = 9
+VAR2_DEGREE = 10
 VAR2_MODEL = "Ridge"
 VAR2_ALPHA = 1.0
 

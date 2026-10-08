@@ -31,7 +31,7 @@ MinMaxScaler(feature_range=(-1, 1))
 ```
 
 The scaler is included inside the sklearn `Pipeline` so it is fit only on the training fold during cross-validation (no data leakage).  
-`LinearRegression` (SVD-based least-squares) was evaluated as the OLS baseline. Ridge was preferred when it lowered CV MSE.
+`LinearRegression` (OLS, SVD-based) was evaluated as a baseline; Ridge was the final model for both problems.
 
 ### Degree definition
 `PolynomialFeatures(degree=d)` uses **total degree ≤ d** across all features, matching the assignment definition exactly.
@@ -42,7 +42,7 @@ The scaler is included inside the sklearn `Pipeline` so it is fit only on the tr
 - **Degree selection rule (1-SE / parsimony):** choose the *smallest* degree d such that mean_val_MSE(d) ≤ best_mean_val_MSE + 1 SE (where SE = std / sqrt(k) over k=5 folds). This prevents selecting a slightly-overfitted higher degree when a simpler model performs equivalently.
 
 ### Ridge regularisation
-For each problem, once the OLS-optimal degree was identified, a grid search over alpha = {0.001, 0.01, 0.1, 1, 10, 100, 1000} was run with 5-fold CV. Ridge was used if it produced lower CV MSE than plain OLS.
+For each problem, once the OLS-optimal degree was identified, a **coarse fixed-alpha search** was run at that degree: alpha ∈ {0.001, 0.01, 0.1, 1, 10, 100, 1000} with 5-fold CV. The best alpha from this single-degree search was then used as a fixed value for the full degree sweep (not tuned per degree). This is a simplification — a finer per-degree grid would give marginal gains (e.g. alpha=3 at var1 d=5 gives CV MSE 0.4605 vs 0.4753; within noise). Ridge was used whenever it improved CV MSE over OLS.
 
 ---
 
@@ -67,7 +67,7 @@ For each problem, once the OLS-optimal degree was identified, a grid search over
 
 *(Ridge, alpha=1.0 sweep used for this final table)*
 
-**OLS vs Ridge at degree 5:**
+**OLS vs Ridge at degree 4 (OLS-optimal degree):**
 
 | Model | Alpha | CV MSE | CV R² |
 |---|---|---|---|
@@ -79,7 +79,7 @@ For each problem, once the OLS-optimal degree was identified, a grid search over
 | Ridge | 10.0 | 0.7278 | 0.9293 |
 | Ridge | 100.0 | 1.4970 | 0.8544 |
 
-Ridge(alpha=1.0) chosen — 8.9% lower CV MSE than OLS.
+Ridge(alpha=1.0) was then carried into the full degree sweep. The Ridge sweep selects degree 5 with CV MSE = 0.4753, which is 57.4% below OLS at the same degree (OLS d=5: 1.1146) and 37.0% below the best OLS at any degree (OLS d=4: 0.7537).
 
 **Final var1 model:** degree=5, Ridge(alpha=1.0)
 - 5-fold CV MSE = **0.4753**, CV R² = **0.9538**
@@ -130,10 +130,10 @@ Ridge(alpha=0.01) chosen — 4.6% lower CV MSE than OLS.
 | var1 | 5 | 462 | 1000 | Yes — 462 < 1000, OLS determined |
 | var2 | 8 | 165 | 1000 | Yes — 165 < 1000, OLS determined |
 
-- At d=5 (var1) and d=8 (var2), the design matrix is overdetermined (more samples than terms), so OLS has a unique solution. Ridge adds a small regularisation benefit regardless.
-- Raw OLS at d=6+ for var1 (924–18564 terms > 1000 samples) and d=15+ for var2 become severely ill-conditioned or rank-deficient, leading to validation MSE blow-ups. Ridge completely mitigates this for the degrees explored.
-- Features were already in [-1, 1]; the `MinMaxScaler(feature_range=(-1, 1))` inside the pipeline is a no-op on the training fold but is retained for correctness in case of unseen test ranges.
-- `sklearn.LinearRegression` uses SVD-based lstsq internally — no explicit normal-equation inversion.
+- At d=5 (var1) and d=8 (var2), the design matrix is overdetermined (more samples than terms), so OLS has a unique solution. Ridge adds a regularisation benefit regardless, confirmed by CV.
+- Raw OLS at d=6+ for var1 (924–18564 terms > 1000 samples) and d=15+ for var2 become severely ill-conditioned or rank-deficient, leading to validation MSE blow-ups. Ridge completely mitigates this.
+- Features were already in [-1, 1]; the `MinMaxScaler(feature_range=(-1, 1))` inside the pipeline is a no-op on the training fold but is retained for correctness.
+- Both final models use `Ridge` (sklearn), which internally solves via Cholesky/SVD — no explicit normal-equation inversion.
 
 ---
 
@@ -153,5 +153,6 @@ Test-set metrics are unknown (ground truth is hidden). The holdout check on 20% 
 - Both models achieve strong R² values (>0.95 and >0.99 respectively) using only polynomial regression + Ridge.
 - The 1-SE parsimony rule correctly avoided overfitting at higher degrees.
 - **Limitation:** var1 predictions extend slightly beyond the training y range (1.7%), indicating mild extrapolation in the test set — acceptable and expected for polynomial models.
+- **Limitation (test distribution shift for var1):** ~50.3% of var1 test feature values sit exactly at ±1 (the boundary of the input range), versus only 31.8% in training. Test points are therefore more concentrated at the edges of the domain, where polynomial models are least reliable. The CV MSE of 0.4753 was estimated on the training distribution and may be optimistic for the hidden test set. This further supports using Ridge regularisation and a moderate degree (5) rather than higher degrees.
 - **Limitation:** the true degree of the data-generating function is unknown; the chosen degrees (5 and 8) minimise cross-validated MSE and are consistent with the stated hints (≤10 and ≤20).
 - Plain OLS at high degrees for var2 (d≥15) is numerically catastrophic without regularisation — the Ridge approach is essential.

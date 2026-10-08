@@ -132,10 +132,11 @@ def build_pdf():
         )
 
     pdf.body(
-        "Best OLS CV MSE at degree 4 (0.7537). Ridge(alpha=1.0) at degree 5 achieves CV MSE=0.4753 "
-        "(8.9% below OLS at best OLS degree). Chosen: degree=5, Ridge(alpha=1.0).\n\n"
-        "Underfitting is clear for d<3 (val R2<0.90). For d>5, train MSE drops toward 0 while "
-        "val MSE rises - classic overfitting. Ridge regularises this effect."
+        "OLS CV sweep: best val MSE = 0.7537 at degree 4. However, Ridge(alpha=1.0) at degree 5 "
+        "achieves CV MSE = 0.4753, which is 57.4% below OLS at the same degree (OLS d=5: 1.1146) "
+        "and 37.0% below the best OLS at any degree. Chosen: degree=5, Ridge(alpha=1.0).\n\n"
+        "Underfitting is clear for d <= 3 (val R2 <= 0.90 for var1). For d > 5, train MSE drops "
+        "toward 0 while val MSE rises - classic overfitting. Ridge regularises this effect."
     )
 
     img1 = RESULTS_DIR / "degree_curve_var1.png"
@@ -144,10 +145,13 @@ def build_pdf():
         pdf.ln(2)
 
     pdf.body(
-        "OLS vs Ridge comparison at degree 5:\n"
-        "  OLS: CV MSE=0.7537, CV R2=0.9267\n"
-        "  Ridge(alpha=1.0): CV MSE=0.6861, CV R2=0.9333  [CHOSEN]\n"
-        "  Ridge(alpha=10.0): CV MSE=0.7278, CV R2=0.9293\n\n"
+        "OLS vs Ridge at degree 4 (OLS-optimal degree):\n"
+        "  OLS d=4: CV MSE=0.7537, CV R2=0.9267\n"
+        "  OLS d=5: CV MSE=1.1146, CV R2=0.8917  (OLS overfits at d=5)\n"
+        "  Ridge(alpha=1.0) d=5: CV MSE=0.4753, CV R2=0.9538  [CHOSEN]\n\n"
+        "Alpha was selected via a coarse grid {0.001..1000} at the OLS-optimal degree, then fixed "
+        "for the full degree sweep (not tuned per-degree). Finer tuning gives marginal gains within "
+        "noise (e.g. alpha=3 at d=5 gives 0.4605 vs 0.4753).\n\n"
         "Final var1 model: degree=5, Ridge(alpha=1.0)\n"
         "  5-fold CV MSE = 0.4753   CV R2 = 0.9538\n"
         "  80/20 holdout MSE = 0.4035   holdout R2 = 0.9593\n"
@@ -205,10 +209,10 @@ def build_pdf():
         col_widths=[22, 20, 22, 22, 50, 30],
     )
     pdf.body(
-        "Features are already in [-1,1]; the MinMaxScaler is a no-op but retained for correctness. "
-        "sklearn LinearRegression uses SVD-based lstsq (no explicit matrix inversion). "
-        "At chosen degrees the design matrix is well-determined. Ridge adds a small regularisation "
-        "benefit that consistently improves generalisation."
+        "Features are already in [-1,1]; MinMaxScaler is a no-op but retained for correctness. "
+        "Both final models use Ridge (sklearn), which solves via Cholesky/SVD - no explicit matrix inversion. "
+        "At chosen degrees the design matrix is well-determined. Ridge consistently improves "
+        "generalisation over OLS, confirmed by cross-validation."
     )
 
     pdf.section_title("5. Final Metrics Summary")
@@ -233,7 +237,10 @@ def build_pdf():
         "The 1-SE parsimony rule correctly avoided overfitting. Ridge consistently outperforms "
         "plain OLS and is essential for numerical stability at high degrees.\n\n"
         "Limitations:\n"
-        "  - var1 predictions extend 1.7% beyond train y range (mild extrapolation in test).\n"
+        "  - var1 predictions extend 1.7% beyond train y range (mild extrapolation).\n"
+        "  - Test distribution shift (var1): ~50.3% of test features are at +/-1 vs 31.8% in train.\n"
+        "    Test points concentrate at domain edges where polynomials are least reliable; the\n"
+        "    CV MSE of 0.4753 may be optimistic. This supports Ridge + moderate degree (5).\n"
         "  - The true data-generating degree is unknown; chosen degrees (5, 8) minimise CV MSE.\n"
         "  - OLS without regularisation fails completely for var2 at d>=15."
     )
